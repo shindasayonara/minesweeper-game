@@ -137,23 +137,32 @@ document.addEventListener('DOMContentLoaded', function () {
         return minePositions;
     }
 
-    function handleCellClick(cell, minePositions) {
-        const index = parseInt(cell.dataset.index);
-        const row = Math.floor(index / width);
-        const col = index % width;
+    async function handleCellClick(cell, minePositions) {
+    if (gameOver || gameSaved) return; // Игра завершена или уже сохранена, пропускаем обработку
 
-        if (minePositions.has(index)) {
-            cell.classList.add('revealed', 'mine');
-            moves.push({ row, col, result: 'Mine' }); // Запись шага
-            gameOver = true;
-            gameStatus.textContent = 'Game Over!';
-            saveGameResult(false);
-            return;
-        }
+    const index = parseInt(cell.dataset.index);
+    const row = Math.floor(index / width);
+    const col = index % width;
 
-        moves.push({ row, col, result: 'Safe' }); // Запись шага
-        revealCell(cell, minePositions);
+    if (minePositions.has(index)) {
+        cell.classList.add('revealed', 'mine');
+        moves.push({ row, col, result: 'Mine' }); // Запись шага
+        gameOver = true;
+        gameStatus.textContent = 'Game Over!';
+        await saveGameResult(false); // Сохраняем игру при поражении
+        return;
     }
+
+    moves.push({ row, col, result: 'Safe' }); // Запись шага
+    revealCell(cell, minePositions);
+
+    if (checkForWin(minePositions)) {
+        gameStatus.textContent = 'You Win!';
+        gameOver = true;
+        await saveGameResult(true); // Сохраняем игру при победе
+    }
+}
+
 
     function revealCell(cell, minePositions) {
         if (cell.classList.contains('revealed')) return;
@@ -166,11 +175,7 @@ document.addEventListener('DOMContentLoaded', function () {
             revealAdjacentCells(parseInt(cell.dataset.index), minePositions);
         }
 
-        if (checkForWin(minePositions)) {
-            gameStatus.textContent = 'You Win!';
-            gameOver = true;
-            saveGameResult(true);
-        }
+
     }
 
     function countAdjacentMines(index, minePositions) {
